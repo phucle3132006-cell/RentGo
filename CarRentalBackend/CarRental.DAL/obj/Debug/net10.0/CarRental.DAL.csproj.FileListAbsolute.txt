@@ -1,0 +1,28 @@
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.DAL\bin\Debug\net10.0\CarRental.DAL.deps.json
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.DAL\bin\Debug\net10.0\CarRental.DAL.runtimeconfig.json
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.DAL\bin\Debug\net10.0\CarRental.DAL.dll
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.DAL\bin\Debug\net10.0\CarRental.DAL.pdb
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.DAL\bin\Debug\net10.0\CarRental.Models.dll
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.DAL\bin\Debug\net10.0\CarRental.Models.pdb
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.DAL\obj\Debug\net10.0\CarRental.DAL.csproj.AssemblyReference.cache
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.DAL\obj\Debug\net10.0\CarRental.DAL.GeneratedMSBuildEditorConfig.editorconfig
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.DAL\obj\Debug\net10.0\CarRental.DAL.AssemblyInfoInputs.cache
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.DAL\obj\Debug\net10.0\CarRental.DAL.AssemblyInfo.cs
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.DAL\obj\Debug\net10.0\CarRental.DAL.csproj.CoreCompileInputs.cache
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.DAL\obj\Debug\net10.0\CarRenta.4C01FACF.Up2Date
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.DAL\obj\Debug\net10.0\CarRental.DAL.dll
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.DAL\obj\Debug\net10.0\refint\CarRental.DAL.dll
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.DAL\obj\Debug\net10.0\CarRental.DAL.pdb
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.DAL\obj\Debug\net10.0\CarRental.DAL.genruntimeconfig.cache
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.DAL\obj\Debug\net10.0\ref\CarRental.DAL.dll
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.DAL\bin\Debug\net10.0\CarRental.DAL.runtimeconfig.dev.json
+C:\Users\pc\Documents\ChatGPT\juno\rentgo-orders-build\CarRental.DAL.deps.json
+C:\Users\pc\Documents\ChatGPT\juno\rentgo-orders-build\CarRental.DAL.runtimeconfig.json
+C:\Users\pc\Documents\ChatGPT\juno\rentgo-orders-build\CarRental.DAL.runtimeconfig.dev.json
+C:\Users\pc\Documents\ChatGPT\juno\rentgo-orders-build\CarRental.DAL.dll
+C:\Users\pc\Documents\ChatGPT\juno\rentgo-orders-build\CarRental.DAL.pdb
+C:\Users\pc\Documents\ChatGPT\juno\.rentgo-build\CarRental.DAL.deps.json
+C:\Users\pc\Documents\ChatGPT\juno\.rentgo-build\CarRental.DAL.runtimeconfig.json
+C:\Users\pc\Documents\ChatGPT\juno\.rentgo-build\CarRental.DAL.runtimeconfig.dev.json
+C:\Users\pc\Documents\ChatGPT\juno\.rentgo-build\CarRental.DAL.dll
+C:\Users\pc\Documents\ChatGPT\juno\.rentgo-build\CarRental.DAL.pdb
