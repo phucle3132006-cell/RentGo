@@ -1,0 +1,40 @@
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.BLL\bin\Debug\net10.0\CarRental.BLL.deps.json
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.BLL\bin\Debug\net10.0\CarRental.BLL.dll
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.BLL\bin\Debug\net10.0\CarRental.BLL.pdb
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.BLL\bin\Debug\net10.0\CarRental.DAL.dll
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.BLL\bin\Debug\net10.0\CarRental.Models.dll
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.BLL\bin\Debug\net10.0\CarRental.DAL.pdb
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.BLL\bin\Debug\net10.0\CarRental.Models.pdb
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.BLL\obj\Debug\net10.0\CarRental.BLL.csproj.AssemblyReference.cache
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.BLL\obj\Debug\net10.0\CarRental.BLL.GeneratedMSBuildEditorConfig.editorconfig
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.BLL\obj\Debug\net10.0\CarRental.BLL.AssemblyInfoInputs.cache
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.BLL\obj\Debug\net10.0\CarRental.BLL.AssemblyInfo.cs
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.BLL\obj\Debug\net10.0\CarRental.BLL.csproj.CoreCompileInputs.cache
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.BLL\obj\Debug\net10.0\CarRenta.6747CD5D.Up2Date
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.BLL\obj\Debug\net10.0\CarRental.BLL.dll
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.BLL\obj\Debug\net10.0\refint\CarRental.BLL.dll
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.BLL\obj\Debug\net10.0\CarRental.BLL.pdb
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.BLL\obj\Debug\net10.0\ref\CarRental.BLL.dll
+C:\Users\pc\Documents\ChatGPT\juno\rentgo-orders-build\CarRental.BLL.deps.json
+C:\Users\pc\Documents\ChatGPT\juno\rentgo-orders-build\CarRental.BLL.dll
+C:\Users\pc\Documents\ChatGPT\juno\rentgo-orders-build\CarRental.BLL.pdb
+C:\Users\pc\Documents\ChatGPT\juno\.rentgo-build\CarRental.BLL.deps.json
+C:\Users\pc\Documents\ChatGPT\juno\.rentgo-build\CarRental.BLL.dll
+C:\Users\pc\Documents\ChatGPT\juno\.rentgo-build\CarRental.BLL.pdb
+D:\RentGo-main\RentGo-main\CarRentalBackend\CarRental.BLL\bin\Debug\net10.0\CarRental.BLL.deps.json
+D:\RentGo-main\RentGo-main\CarRentalBackend\CarRental.BLL\bin\Debug\net10.0\CarRental.BLL.dll
+D:\RentGo-main\RentGo-main\CarRentalBackend\CarRental.BLL\bin\Debug\net10.0\CarRental.BLL.pdb
+D:\RentGo-main\RentGo-main\CarRentalBackend\CarRental.BLL\bin\Debug\net10.0\CarRental.DAL.dll
+D:\RentGo-main\RentGo-main\CarRentalBackend\CarRental.BLL\bin\Debug\net10.0\CarRental.Models.dll
+D:\RentGo-main\RentGo-main\CarRentalBackend\CarRental.BLL\bin\Debug\net10.0\CarRental.DAL.pdb
+D:\RentGo-main\RentGo-main\CarRentalBackend\CarRental.BLL\bin\Debug\net10.0\CarRental.Models.pdb
+D:\RentGo-main\RentGo-main\CarRentalBackend\CarRental.BLL\obj\Debug\net10.0\CarRental.BLL.csproj.AssemblyReference.cache
+D:\RentGo-main\RentGo-main\CarRentalBackend\CarRental.BLL\obj\Debug\net10.0\CarRental.BLL.GeneratedMSBuildEditorConfig.editorconfig
+D:\RentGo-main\RentGo-main\CarRentalBackend\CarRental.BLL\obj\Debug\net10.0\CarRental.BLL.AssemblyInfoInputs.cache
+D:\RentGo-main\RentGo-main\CarRentalBackend\CarRental.BLL\obj\Debug\net10.0\CarRental.BLL.AssemblyInfo.cs
+D:\RentGo-main\RentGo-main\CarRentalBackend\CarRental.BLL\obj\Debug\net10.0\CarRental.BLL.csproj.CoreCompileInputs.cache
+D:\RentGo-main\RentGo-main\CarRentalBackend\CarRental.BLL\obj\Debug\net10.0\CarRenta.6747CD5D.Up2Date
+D:\RentGo-main\RentGo-main\CarRentalBackend\CarRental.BLL\obj\Debug\net10.0\CarRental.BLL.dll
+D:\RentGo-main\RentGo-main\CarRentalBackend\CarRental.BLL\obj\Debug\net10.0\refint\CarRental.BLL.dll
+D:\RentGo-main\RentGo-main\CarRentalBackend\CarRental.BLL\obj\Debug\net10.0\CarRental.BLL.pdb
+D:\RentGo-main\RentGo-main\CarRentalBackend\CarRental.BLL\obj\Debug\net10.0\ref\CarRental.BLL.dll

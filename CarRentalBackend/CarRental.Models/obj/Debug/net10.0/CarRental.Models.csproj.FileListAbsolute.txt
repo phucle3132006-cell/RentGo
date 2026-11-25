@@ -1,0 +1,30 @@
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.Models\bin\Debug\net10.0\CarRental.Models.deps.json
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.Models\bin\Debug\net10.0\CarRental.Models.dll
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.Models\bin\Debug\net10.0\CarRental.Models.pdb
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.Models\obj\Debug\net10.0\CarRental.Models.GeneratedMSBuildEditorConfig.editorconfig
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.Models\obj\Debug\net10.0\CarRental.Models.AssemblyInfoInputs.cache
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.Models\obj\Debug\net10.0\CarRental.Models.AssemblyInfo.cs
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.Models\obj\Debug\net10.0\CarRental.Models.csproj.CoreCompileInputs.cache
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.Models\obj\Debug\net10.0\CarRental.Models.dll
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.Models\obj\Debug\net10.0\refint\CarRental.Models.dll
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.Models\obj\Debug\net10.0\CarRental.Models.pdb
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.Models\obj\Debug\net10.0\ref\CarRental.Models.dll
+D:\Công nghê phân mềm\Finnal project\CarRentalBackend\CarRental.Models\obj\Debug\net10.0\CarRenta.552469D9.Up2Date
+C:\Users\pc\Documents\ChatGPT\juno\rentgo-orders-build\CarRental.Models.deps.json
+C:\Users\pc\Documents\ChatGPT\juno\rentgo-orders-build\CarRental.Models.dll
+C:\Users\pc\Documents\ChatGPT\juno\rentgo-orders-build\CarRental.Models.pdb
+C:\Users\pc\Documents\ChatGPT\juno\.rentgo-build\CarRental.Models.deps.json
+C:\Users\pc\Documents\ChatGPT\juno\.rentgo-build\CarRental.Models.dll
+C:\Users\pc\Documents\ChatGPT\juno\.rentgo-build\CarRental.Models.pdb
+D:\RentGo-main\RentGo-main\CarRentalBackend\CarRental.Models\bin\Debug\net10.0\CarRental.Models.deps.json
+D:\RentGo-main\RentGo-main\CarRentalBackend\CarRental.Models\bin\Debug\net10.0\CarRental.Models.dll
+D:\RentGo-main\RentGo-main\CarRentalBackend\CarRental.Models\bin\Debug\net10.0\CarRental.Models.pdb
+D:\RentGo-main\RentGo-main\CarRentalBackend\CarRental.Models\obj\Debug\net10.0\CarRental.Models.GeneratedMSBuildEditorConfig.editorconfig
+D:\RentGo-main\RentGo-main\CarRentalBackend\CarRental.Models\obj\Debug\net10.0\CarRental.Models.AssemblyInfoInputs.cache
+D:\RentGo-main\RentGo-main\CarRentalBackend\CarRental.Models\obj\Debug\net10.0\CarRental.Models.AssemblyInfo.cs
+D:\RentGo-main\RentGo-main\CarRentalBackend\CarRental.Models\obj\Debug\net10.0\CarRental.Models.csproj.CoreCompileInputs.cache
+D:\RentGo-main\RentGo-main\CarRentalBackend\CarRental.Models\obj\Debug\net10.0\CarRental.Models.dll
+D:\RentGo-main\RentGo-main\CarRentalBackend\CarRental.Models\obj\Debug\net10.0\refint\CarRental.Models.dll
+D:\RentGo-main\RentGo-main\CarRentalBackend\CarRental.Models\obj\Debug\net10.0\CarRental.Models.pdb
+D:\RentGo-main\RentGo-main\CarRentalBackend\CarRental.Models\obj\Debug\net10.0\ref\CarRental.Models.dll
+D:\RentGo-main\RentGo-main\CarRentalBackend\CarRental.Models\obj\Debug\net10.0\CarRenta.552469D9.Up2Date
