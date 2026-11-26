@@ -28,6 +28,7 @@ if (builder.Environment.WebRootFileProvider is Microsoft.Extensions.FileProvider
 // 1. Đăng ký Controllers cho Web API.
 builder.Services.AddControllers();
 
+
 // 2. Đọc chuỗi kết nối từ appsettings.json.
 var connectionString = builder.Configuration
     .GetConnectionString("DefaultConnection");
