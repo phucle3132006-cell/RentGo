@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       ${o.status === 'CANCELLED' && o.rejectionReason ? `<p class="muted">Lý do từ chối: ${esc(o.rejectionReason)}</p>` : ''}
       <div class="order-foot"><div class="total">${fmtMoney(o.total)}</div><div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-outline btn-sm" data-detail="${o.id}">Chi tiết</button>
-        ${o.canUseManualPayment ? `<a class="btn btn-outline btn-sm" href="payment.html?orderId=${encodeURIComponent(o.id)}">${o.status === 'PENDING' ? 'Phương thức thanh toán' : 'Thanh toán'}</a>` : ''}
+        ${o.canUseManualPayment ? `<a class="btn btn-outline btn-sm" href="payment.html?orderId=${encodeURIComponent(o.id)}">Thanh toán</a>` : ''}
         ${['PENDING', 'CONFIRMED'].includes(o.status) ? `<button class="btn btn-danger btn-sm" data-cancel="${o.id}">Huỷ đơn</button>` : ''}
       </div></div></div>`).join('') : '<div class="empty"><h3>Chưa có đơn thuê nào</h3><p>Hãy chọn xe và đặt lịch ngay.</p><a class="btn btn-coral" href="vehicles.html">Thuê xe</a></div>';
   }
@@ -47,14 +47,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!orders.length && page > 1) { page--; return load(); }
       renderFilter();
       render();
-      for (const [label, next, active] of [['Trang trước', page - 1, page > 1], ['Trang sau', page + 1, page * result.pageSize < result.totalCount]]) {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.textContent = label;
-        button.disabled = !active;
-        button.onclick = () => { page = next; load(); };
-        pager.append(button);
-      }
+      renderPager(pager, page, Math.max(1, Math.ceil(result.totalCount / result.pageSize)), result.totalCount, next => { page = next; load(); });
     } catch (e) { if (!quiet && ticket === generation) $('#list').innerHTML = `<div class="alert err">${esc(e.message)}</div>`; }
   }
   $('#list').onclick = async e => {

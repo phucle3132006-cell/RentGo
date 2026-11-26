@@ -136,8 +136,7 @@ public sealed class TransferRequestsController(CarRentalDbContext context, IRent
             return Conflict(new { message = "Đơn đã có yêu cầu đang chờ xác nhận." });
 
         if (!order.CanUseManualPayment() ||
-            (method == "BANK_TRANSFER" && (order.Status != RentalStatus.CONFIRMED ||
-                decimal.Truncate(order.TotalAmount) != order.TotalAmount)))
+            (method == "BANK_TRANSFER" && decimal.Truncate(order.TotalAmount) != order.TotalAmount))
             return Conflict(new { message = "Đơn này không nhận yêu cầu xác nhận thanh toán." });
 
         var item = new TransferRequest
@@ -149,6 +148,16 @@ public sealed class TransferRequestsController(CarRentalDbContext context, IRent
         await context.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
         return Ok(View(item));
+    }
+
+    [HttpGet(AdminPath + "/pending-count")]
+    [Authorize(Roles = "ADMIN")]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<IActionResult> PendingCount(CancellationToken ct)
+    {
+        if (await ActiveActor(UserRole.ADMIN, ct) is null) return Forbid();
+        var pendingCount = await context.Set<TransferRequest>().CountAsync(item => item.Status == "PENDING", ct);
+        return Ok(new { pendingCount });
     }
 
     [HttpGet(AdminPath)]

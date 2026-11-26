@@ -23,13 +23,25 @@ document.addEventListener('DOMContentLoaded', async () => {
       ]);
       const order = normRental(raw);
       const state = JSON.stringify([order.status, order.total, order.canUseManualPayment, latest, method]);
-      if (state === previous) return;
       const payable = order.canUseManualPayment;
       const waiting = latest?.status === 'PENDING';
       const selected = waiting ? latest.paymentMethod : method;
-      const showTransfer = payable && selected === 'BANK_TRANSFER' && Number.isSafeInteger(order.total);
-      if (showTransfer && instructions?.amount !== String(order.total))
-        instructions = await request('GET', path + '/instructions', undefined, true);
+      const bankSelected = selected === 'BANK_TRANSFER';
+      const validBankAmount = Number.isSafeInteger(order.total) && order.total > 0;
+      const needsInstructions = payable && bankSelected && validBankAmount;
+      if (state === previous && (!needsInstructions || instructions?.amount === String(order.total))) return;
+      let instructionError = false;
+      if (needsInstructions && instructions?.amount !== String(order.total)) {
+        try {
+          instructions = await request('GET', path + '/instructions', undefined, true);
+        } catch {
+          // An unavailable QR must not hide the order or its confirmation action.
+          instructions = undefined;
+          instructionError = true;
+        }
+      }
+      const showTransfer = needsInstructions && !!instructions && instructions.amount === String(order.total);
+      const canSubmit = payable && !waiting && (selected === 'CASH' || (bankSelected && validBankAmount));
       const { bank, account, holder, amount, reference, qrPng } = instructions || {};
       const status = {
         PENDING: 'Yêu cầu xác nhận đang chờ admin xử lý.',
@@ -56,12 +68,14 @@ document.addEventListener('DOMContentLoaded', async () => {
           '<img id="transferQr" width="240" height="240" alt="VietQR chuyển khoản MB Bank" referrerpolicy="no-referrer">' +
           field('Số tài khoản', account, 'account') + field('Số tiền', amount, 'amount') +
           field('Nội dung chuyển khoản', reference, 'reference') : '') +
-        (payable && order.status === 'PENDING' && selected === 'BANK_TRANSFER' ?
-          '<p>Đơn đang chờ duyệt. Hãy đợi RentGo duyệt đơn trước khi chuyển tiền.</p>' : '') +
-        (payable && !waiting && (selected === 'CASH' || (showTransfer && order.status === 'CONFIRMED')) ?
-          '<p><button type="button" class="btn btn-coral" id="sendTransfer">' +
-          (selected === 'CASH' ? 'Gửi yêu cầu xác nhận tiền mặt' : 'Tôi đã chuyển khoản – Gửi yêu cầu xác nhận') +
-          '</button></p>' : '') + back;
+        (needsInstructions && instructionError ? '<p role="alert">Chưa tải được thông tin chuyển khoản. Hệ thống sẽ tự thử lại. Chỉ gửi yêu cầu nếu bạn thực sự đã chuyển tiền.</p>' : '') +
+        (payable && bankSelected && !validBankAmount ? '<p role="alert">Số tiền không hợp lệ để chuyển khoản VietQR. Vui lòng liên hệ RentGo.</p>' : '') +
+        (payable && !waiting ?
+          '<p><button type="button" class="btn btn-coral" id="sendTransfer"' + (canSubmit ? '' : ' disabled') + '>' +
+          (selected === 'CASH' ? 'Gửi yêu cầu xác nhận tiền mặt' : 'Tôi đã thanh toán – Gửi yêu cầu xác nhận') +
+          '</button></p>' : '') +
+        (payable && waiting ? '<p><button type="button" class="btn btn-outline" disabled>Đã gửi yêu cầu xác nhận</button></p>' : '') + back;
+      if (state !== previous) errorBox.textContent = '';
       previous = state;
       if (!payable) return;
 
@@ -86,22 +100,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
       });
       const send = $('#sendTransfer');
-      if (send) {
+      if (send && canSubmit) {
         const storageKey = 'rentgo.transfer.' + Auth.user().id + '.' + id + '.' + (latest?.id ?? 'first') + '.' + selected;
         send.onclick = async () => {
           if (busy) return;
           busy = true;
           setLoading(send, true);
           errorBox.textContent = '';
+          let submitted = false;
           try {
             const key = sessionStorage.getItem(storageKey) || crypto.randomUUID();
             sessionStorage.setItem(storageKey, key);
             await request('POST', path, { paymentMethod: selected }, true, { 'Idempotency-Key': key });
+            submitted = true;
+            errorBox.textContent = 'Đã gửi yêu cầu xác nhận. Vui lòng chờ ADMIN kiểm tra.';
           } catch (error) {
             errorBox.textContent = error.message;
           } finally {
             busy = false;
             setLoading(send, false);
+            if (submitted) {
+              send.disabled = true;
+              send.textContent = 'Đã gửi yêu cầu xác nhận';
+            }
             await refresh();
           }
         };

@@ -1,0 +1,26 @@
+#paymentRevenue { margin-bottom: 1rem; }
+#paymentRevenue h2, #paymentRevenue h3 { margin-bottom: .65rem; }
+#paymentRevenue .search-bar { align-items: end; }
+#paymentRevenue label { display: grid; gap: .25rem; }
+#paymentRevenue .revenue-inputs { display: flex; flex-wrap: wrap; gap: .6rem; }
+#paymentRevenue .revenue-status:empty { display: none; }
+#paymentRevenue .revenue-status, #paymentRevenue .revenue-results > p { margin: .75rem 0; }
+#paymentRevenue .revenue-up { color: #17745e; }
+#paymentRevenue .revenue-down { color: #a52c2b; }
+#paymentRevenue .revenue-charts { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 1rem; }
+#paymentRevenue .revenue-scroll { overflow-x: auto; }
+#paymentRevenue .revenue-bars { display: flex; gap: .45rem; padding: .5rem 0; margin: 0; list-style: none; }
+#paymentRevenue .revenue-bars li { flex: 1 0 auto; min-width: 2.75rem; text-align: center; font-size: .75rem; }
+#paymentRevenue .revenue-bar-track {
+  display: flex; align-items: end; justify-content: center; height: 8rem;
+  border-bottom: 1px solid #cdd3df; background: #f4f6f9;
+}
+#paymentRevenue .revenue-bar-track i { width: 65%; background: #b74746; border-radius: .25rem .25rem 0 0; }
+#paymentRevenue .revenue-donut { width: 8rem; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; }
+#paymentRevenue .revenue-donut::after { content: ""; width: 58%; aspect-ratio: 1; background: white; border-radius: 50%; }
+#paymentRevenue .revenue-legend { list-style: none; padding: 0; margin: .65rem 0 0; }
+#paymentRevenue .revenue-legend i { display: inline-block; width: .7rem; height: .7rem; border-radius: 50%; margin-right: .25rem; }
+#paymentRevenue .revenue-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+@media (max-width: 760px) {
+  #paymentRevenue .revenue-charts { grid-template-columns: minmax(0, 1fr); }
+}

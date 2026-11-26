@@ -15,14 +15,19 @@ namespace CarRental.API.Controllers;
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class AdminUsersController(CarRentalDbContext context) : ControllerBase
 {
-    public sealed record StatusRequest([Required] bool? Blocked);
+    public sealed record StatusRequest([Required] bool? Blocked, [StringLength(500)] string? Reason);
 
-    private static IQueryable<UserView> Project(IQueryable<User> users) =>
+    private IQueryable<UserView> Project(IQueryable<User> users) =>
         users.Select(user => new UserView(user.Id, user.FullName, user.Email, user.Phone,
-            user.Role.ToString(), user.Status.ToString(), user.CreatedAt, user.UpdatedAt));
+            user.Role.ToString(), user.Status.ToString(), user.CreatedAt, user.UpdatedAt,
+            context.UserBlacklist.Where(entry => entry.UserId == user.Id).Select(entry => entry.Reason).FirstOrDefault(),
+            user.Role == UserRole.CUSTOMER && context.UserBlacklist.Any(entry => entry.UserId != user.Id &&
+                (entry.Email == user.Email.Trim().ToLower() ||
+                 (entry.PhoneKey != null && entry.PhoneKey == CarRentalDbContext.BlacklistPhoneKey(user.Phone))))));
 
     public sealed record UserView(long Id, string FullName, string Email, string Phone,
-        string Role, string Status, DateTime CreatedAt, DateTime UpdatedAt);
+        string Role, string Status, DateTime CreatedAt, DateTime UpdatedAt,
+        string? BlockReason, bool ContactBlocked);
 
     [HttpGet]
     public async Task<IActionResult> List(CancellationToken ct,
@@ -41,6 +46,36 @@ public sealed class AdminUsersController(CarRentalDbContext context) : Controlle
         return Ok(new { items, totalCount, page, pageSize });
     }
 
+    [HttpGet("blacklist")]
+    public async Task<IActionResult> Blacklist(CancellationToken ct,
+        [FromQuery, Range(1, 1000000)] int page = 1,
+        [FromQuery, Range(1, 100)] int pageSize = 20,
+        [FromQuery, StringLength(100)] string? search = null)
+    {
+        var entries = context.UserBlacklist.AsNoTracking();
+        var term = search?.Trim();
+        if (!string.IsNullOrEmpty(term))
+            entries = entries.Where(entry => entry.User.FullName.Contains(term) ||
+                entry.Email.Contains(term) || entry.Phone.Contains(term) || entry.Reason.Contains(term));
+
+        var totalCount = await entries.CountAsync(ct);
+        var items = await entries.OrderByDescending(entry => entry.BlockedAt)
+            .ThenByDescending(entry => entry.UserId)
+            .Skip((page - 1) * pageSize).Take(pageSize)
+            .Select(entry => new
+            {
+                Id = entry.UserId,
+                entry.User.FullName,
+                entry.Email,
+                entry.Phone,
+                entry.Reason,
+                entry.BlockedAt,
+                BlockedByName = entry.BlockedBy == null ? null : entry.BlockedBy.FullName
+            })
+            .ToListAsync(ct);
+        return Ok(new { items, totalCount, page, pageSize });
+    }
+
     [HttpGet("{id:long}")]
     public async Task<IActionResult> Detail(long id, CancellationToken ct)
     {
@@ -54,17 +89,12 @@ public sealed class AdminUsersController(CarRentalDbContext context) : Controlle
     {
         if (!long.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var actor))
             return Unauthorized();
-        if (input.Blocked == true && actor == id)
-            return Conflict(new { message = "Bạn không thể tự chặn tài khoản của mình." });
+        var blocked = input.Blocked == true;
+        var reason = input.Reason?.Trim();
+        if (blocked && string.IsNullOrEmpty(reason))
+            return BadRequest(new { message = "Vui lòng nhập lý do chặn." });
 
-        await using var transaction = await context.Database.BeginTransactionAsync(ct);
-        await context.Database.ExecuteSqlRawAsync("""
-            DECLARE @result int;
-            EXEC @result = sys.sp_getapplock @Resource = N'RentGo.AdminUsers.Status',
-                @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 5000;
-            IF @result < 0 THROW 51001, 'Could not lock user status changes.', 1;
-            """, ct);
-
+        await using var transaction = await context.BeginUserIdentityTransactionAsync(ct);
         var version = User.FindFirstValue("session_version");
         var admin = await context.Users.AsNoTracking().SingleOrDefaultAsync(user =>
             user.Id == actor && user.Role == UserRole.ADMIN && user.Status == UserStatus.ACTIVE, ct);
@@ -72,17 +102,42 @@ public sealed class AdminUsersController(CarRentalDbContext context) : Controlle
 
         var user = await context.Users.SingleOrDefaultAsync(user => user.Id == id, ct);
         if (user is null) return NotFound();
-        var status = input.Blocked == true ? UserStatus.LOCKED : UserStatus.ACTIVE;
-        if (user.Status != status)
+        if (blocked && user.Role == UserRole.ADMIN)
+            return Conflict(new { message = "Không thể chặn tài khoản quản trị viên." });
+
+        var entry = await context.UserBlacklist.SingleOrDefaultAsync(item => item.UserId == id, ct);
+        var status = blocked ? UserStatus.LOCKED : UserStatus.ACTIVE;
+        if (user.Status != status || blocked != (entry is not null))
         {
-            if (status == UserStatus.LOCKED && user.Role == UserRole.ADMIN &&
-                !await context.Users.AnyAsync(other => other.Id != id &&
-                    other.Role == UserRole.ADMIN && other.Status == UserStatus.ACTIVE, ct))
-                return Conflict(new { message = "Phải giữ ít nhất một quản trị viên đang hoạt động." });
+            var now = DateTime.UtcNow;
+            if (blocked && entry is null)
+            {
+                var email = user.Email.Trim().ToLowerInvariant();
+                var phone = user.Phone;
+                context.UserBlacklist.Add(new UserBlacklistEntry
+                {
+                    UserId = id,
+                    Email = email,
+                    Phone = phone,
+                    Reason = reason!,
+                    BlockedAt = now,
+                    BlockedByUserId = actor
+                });
+                var newSessionVersion = Guid.NewGuid();
+                await context.Users.Where(other => other.Id != id && other.Role == UserRole.CUSTOMER &&
+                    (other.Email.Trim().ToLower() == email ||
+                     (CarRentalDbContext.BlacklistPhoneKey(other.Phone) != null &&
+                      CarRentalDbContext.BlacklistPhoneKey(other.Phone) == CarRentalDbContext.BlacklistPhoneKey(phone))))
+                    .ExecuteUpdateAsync(setters => setters.SetProperty(other => other.SessionVersion, newSessionVersion), ct);
+            }
+            else if (!blocked && entry is not null)
+            {
+                context.UserBlacklist.Remove(entry);
+            }
 
             user.Status = status;
             user.SessionVersion = Guid.NewGuid();
-            user.UpdatedAt = DateTime.UtcNow;
+            user.UpdatedAt = now;
             await context.SaveChangesAsync(ct);
         }
 

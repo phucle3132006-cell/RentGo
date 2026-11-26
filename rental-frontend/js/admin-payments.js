@@ -13,10 +13,11 @@ function pagePayments() {
   content.classList.add('compact-admin');
   content.innerHTML = `
     <div id="paymentStats" class="stats" aria-live="polite"></div>
+    <section id="paymentRevenue" class="panel" aria-labelledby="revenueTitle"></section>
     <div class="panel">
       <div class="search-bar" id="paymentTabs">
-        <button class="btn btn-outline" data-view="transfers">Yêu cầu xác nhận</button>
-        <button class="btn btn-outline" data-view="pending">Chờ xử lý</button>
+        <button class="btn btn-outline" data-view="transfers">Yêu cầu xác nhận <span id="paymentRequestCount" class="badge orange" hidden style="display:none" aria-live="polite"></span></button>
+        <button class="btn btn-outline" data-view="pending">Chờ thanh toán</button>
         <button class="btn btn-outline" data-view="paid">Đơn đã thanh toán</button>
         <button class="btn btn-outline" data-view="transactions">Giao dịch</button>
       </div>
@@ -31,7 +32,8 @@ function pagePayments() {
   const rows = $('#paymentRows');
   const pager = $('#paymentPager');
   const dialog = $('#paymentDialog');
-  let view = 'pending';
+  const refreshRevenue = mountPaymentRevenue($('#paymentRevenue'), paymentsPath, methodNames);
+  let view = 'transfers';
   let page = 1;
   let generation = 0;
   let busy = false;
@@ -41,7 +43,7 @@ function pagePayments() {
     try {
       const stats = await request('GET', paymentsPath + '/summary', undefined, true);
       $('#paymentStats').innerHTML = [
-        ['Tổng doanh thu', fmtMoney(stats.revenue)], ['Đã thanh toán', stats.paidOrders],
+        ['Doanh thu toàn thời gian', fmtMoney(stats.revenue)], ['Đã thanh toán', stats.paidOrders],
         ['Chờ xử lý', stats.awaitingReview + stats.awaitingPayment]
       ].map(([label, value]) => '<div class="stat"><span>' + label + '</span><strong>' + value + '</strong></div>').join('');
     } catch (error) {
@@ -64,7 +66,7 @@ function pagePayments() {
     return instant.toISOString();
   };
 
-  function selectView(next) {
+  function selectView(next, search = '') {
     view = next;
     for (const button of $('#paymentTabs').querySelectorAll('button')) {
       const selected = button.dataset.view === view;
@@ -82,6 +84,7 @@ function pagePayments() {
         <select class="select" name="method" aria-label="Phương thức">
           <option value="">Mọi phương thức</option>${options(methods, value => methodNames[value])}</select>` : ''}
       <button class="btn btn-outline" type="submit">Lọc</button>`;
+    filters.elements.search.value = search;
     load(1);
   }
 
@@ -117,7 +120,7 @@ function pagePayments() {
         ['Xử lý lúc', item => date(item.reviewedAt)],
         ['Phương thức', item => esc(methodNames[item.paymentMethod])],
         ['', item => item.status === 'PENDING' ?
-          (item.orderStatus === 'CONFIRMED' ? action('transfer-pay', item.id, 'Xác nhận thanh toán') : '') +
+          (['PENDING', 'CONFIRMED'].includes(item.orderStatus) ? action('transfer-pay', item.id, 'Xác nhận thanh toán') : '') +
           ' ' + action('transfer-reject', item.id, 'Từ chối yêu cầu') : '']
       ], items) : transactionView() ? tableHtml([
         ['Mã đơn', item => esc(item.orderCode)],
@@ -138,16 +141,10 @@ function pagePayments() {
         ['Trả xe', item => date(item.endDatetime)],
         ['Tổng tiền', item => fmtMoney(item.totalAmount)],
         ['Trạng thái', item => badge(RENTAL_STATUS, enumName(Enum.rental, item.status))],
-        ['', item => enumName(Enum.rental, item.status) === 'PENDING' ? action('approve', item.id, 'Duyệt') + ' ' +
-          action('reject', item.id, 'Từ chối') : action('pay', item.id, 'Xác nhận thanh toán')]
+        ['', item => item.pendingPaymentRequestId ?
+          action('confirm-pending', item.id, 'Xác nhận thanh toán') : '<span class="muted">Chưa gửi yêu cầu xác nhận</span>']
       ], items);
-      pager.innerHTML = `<button type="button" class="btn btn-outline" id="paymentPrev">Trước</button>
-        <span>Trang ${page} / ${pages}</span><span>${data.totalCount} kết quả</span>
-        <button type="button" class="btn btn-outline" id="paymentNext">Sau</button>`;
-      $('#paymentPrev').disabled = page <= 1;
-      $('#paymentNext').disabled = page >= pages;
-      $('#paymentPrev').onclick = () => load(page - 1);
-      $('#paymentNext').onclick = () => load(page + 1);
+      renderPager(pager, page, pages, data.totalCount, load);
     } catch (error) {
       if (ticket === generation) rows.innerHTML = errBox(error);
     }
@@ -171,7 +168,7 @@ function pagePayments() {
       await request('POST', path, body, true, headers);
       dialog.close();
       $('#paymentFeedback').textContent = message;
-      await Promise.all([refreshSummary(), load(page)]);
+      await Promise.all([refreshSummary(), refreshRevenue(), load(page), refreshAdminPaymentRequests()]);
     } catch (error) {
       $('#paymentDialogError').innerHTML = errBox(error);
     } finally {
@@ -181,72 +178,37 @@ function pagePayments() {
     }
   }
 
-  function review(order, approve) {
-    show(approve ? 'Duyệt đơn' : 'Từ chối đơn', `
-      <p>Đơn ${esc(order.orderCode)} · ${esc(order.customerName)} · ${fmtMoney(order.totalAmount)}</p>
-      <form id="paymentReview">
-        ${approve ? '<p>Đơn sẽ chuyển sang chờ thanh toán.</p>' :
-          '<label>Lý do từ chối <textarea class="input" name="reason" required maxlength="500"></textarea></label>'}
-        <button class="btn btn-coral" type="submit">${approve ? 'Duyệt đơn' : 'Từ chối đơn'}</button>
-      </form>`);
-    $('#paymentReview').onsubmit = event => {
-      event.preventDefault();
-      const reason = new FormData(event.currentTarget).get('reason')?.trim() || null;
-      if (!approve && !reason) {
-        $('#paymentDialogError').textContent = 'Nhập lý do từ chối.';
-        return;
-      }
-      save(event.submitter, itemPath(orderPath, order.id) + '/review', { approve, reason }, {},
-        approve ? 'Đã duyệt đơn.' : 'Đã từ chối đơn.');
-    };
-  }
-
-  function confirmPayment(order, transferRequestId = null) {
-    let body, key, previous;
+  function confirmPayment(order, transferRequestId) {
+    const paymentMethod = order.paymentMethod || order.pendingPaymentMethod;
+    if (!transferRequestId || !['CASH', 'BANK_TRANSFER'].includes(paymentMethod)) return;
+    const key = crypto.randomUUID();
     show('Xác nhận thanh toán', `
       <p>Đơn ${esc(order.orderCode)} · ${esc(order.customerName)}</p>
       <p>Số tiền theo đơn <strong>${fmtMoney(order.totalAmount)}</strong></p>
+      <p>Phương thức <strong>${methodNames[paymentMethod]}</strong></p>
       <form id="paymentEntry">
-        <label>Phương thức <select class="select" name="paymentMethod">
-          ${options(order.paymentMethod || order.pendingPaymentMethod ? [order.paymentMethod || order.pendingPaymentMethod] : ['CASH', 'BANK_TRANSFER'], value => methodNames[value])}</select></label>
-        <label><input name="fundsVerified" type="checkbox" required> Tôi đã đối chiếu và nhận đủ tiền.</label>
-        <button class="btn btn-coral" type="submit">Kiểm tra thông tin</button>
-      </form>
-      <section id="paymentConfirm" hidden>
-        <p id="paymentConfirmation"></p>
-        <button type="button" class="btn btn-outline" id="paymentBack">Quay lại</button>
-        <button type="button" class="btn btn-coral" id="paymentCommit">Ghi nhận đã thanh toán</button>
-      </section>`);
+        <label class="payment-funds-check">
+          <input name="fundsVerified" type="checkbox" required>
+          <span>Tôi đã đối chiếu và nhận đủ tiền.</span>
+        </label>
+        <button class="btn btn-coral" type="submit" disabled>Xác nhận thanh toán</button>
+      </form>`);
     const form = $('#paymentEntry');
-    const step = $('#paymentConfirm');
-    const method = form.elements.paymentMethod;
+    const fundsVerified = form.elements.fundsVerified;
+    const commit = form.querySelector('button[type="submit"]');
+    fundsVerified.onchange = () => {
+      if (!busy) commit.disabled = !fundsVerified.checked;
+    };
     form.onsubmit = event => {
       event.preventDefault();
-      const amount = order.totalAmount;
-      body = { amount, paymentMethod: method.value,
-        fundsVerified: form.elements.fundsVerified.checked, transferRequestId };
-      const serialized = JSON.stringify(body);
-      if (serialized !== previous) {
-        key = crypto.randomUUID();
-        previous = serialized;
-      }
-      $('#paymentConfirmation').textContent = 'Đã nhận ' + fmtMoney(amount) + ' qua ' +
-        methodNames[body.paymentMethod] + '.';
-      $('#paymentDialogError').replaceChildren();
-      form.hidden = true;
-      step.hidden = false;
-      $('#paymentCommit').focus();
+      if (busy || !fundsVerified.checked) return;
+      const body = { amount: order.totalAmount, paymentMethod, fundsVerified: true, transferRequestId };
+      fundsVerified.disabled = true;
+      save(commit, itemPath(orderPath, order.id) + '/payments/confirm-manual', body,
+        { 'Idempotency-Key': key }, 'Đã ghi nhận thanh toán.').finally(() => {
+        fundsVerified.disabled = false;
+      });
     };
-    $('#paymentBack').onclick = () => {
-      if (busy) return;
-      step.hidden = true;
-      form.hidden = false;
-      $('#paymentDialogError').replaceChildren();
-      method.focus();
-    };
-    $('#paymentCommit').onclick = event => save(event.currentTarget,
-      itemPath(orderPath, order.id) + '/payments/confirm-manual', body,
-      { 'Idempotency-Key': key }, 'Đã ghi nhận thanh toán.');
   }
 
   function rejectTransfer(item) {
@@ -286,11 +248,9 @@ function pagePayments() {
     const item = items.find(row => String(row.id) === button.dataset.id);
     if (!item) return;
     switch (button.dataset.action) {
-      case 'approve': review(item, true); break;
-      case 'reject': review(item, false); break;
       case 'transfer-pay': confirmPayment({ ...item, id: item.orderId }, item.id); break;
       case 'transfer-reject': rejectTransfer(item); break;
-      case 'pay': confirmPayment(item); break;
+      case 'confirm-pending': confirmPayment(item, item.pendingPaymentRequestId); break;
       case 'details': showDetails(item); break;
     }
   };
@@ -299,6 +259,20 @@ function pagePayments() {
     if (button) selectView(button.dataset.view);
   };
   filters.onsubmit = event => { event.preventDefault(); load(1); };
-  selectView('pending');
+  let lastRequestCount = null;
+  const onRequestCount = event => {
+    const count = event.detail;
+    const badge = $('#paymentRequestCount');
+    badge.textContent = count > 0 ? String(count) : '';
+    badge.hidden = count === 0;
+    // Avoid the .badge display rule overriding the hidden attribute.
+    badge.style.display = count > 0 ? '' : 'none';
+    if (lastRequestCount !== null && lastRequestCount !== count && !busy && !dialog.open &&
+        (view === 'transfers' || view === 'pending')) load(page);
+    lastRequestCount = count;
+  };
+  window.addEventListener('rentgo:payment-request-count', onRequestCount);
+  selectView(new URLSearchParams(location.search).get('view') === 'transfers' ? 'transfers' : 'pending');
   refreshSummary();
+  refreshAdminPaymentRequests();
 }

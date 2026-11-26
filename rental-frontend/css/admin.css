@@ -44,3 +44,13 @@ body.admin{background:#f6f5fb}
   }
   .compact-admin .btn { min-height: 2.5rem; }
 }
+
+.compact-admin .rg-pager{margin-top:20px;margin-bottom:0;padding-top:12px}.compact-admin .tbl td,.compact-admin .tbl th{padding:12px 14px;line-height:1.5;vertical-align:middle}.compact-admin .search-bar{gap:12px;margin-bottom:16px}.compact-admin .panel{padding:20px}.compact-admin .tbl .btn{margin:4px 2px}.compact-admin dialog form{display:grid;gap:16px;margin:16px 0}.compact-admin dialog label{display:grid;gap:8px}
+
+.compact-admin dialog .payment-funds-check {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  cursor: pointer;
+}
+.payment-funds-check input { flex: none; width: 1.125rem; height: 1.125rem; margin: 0; }

@@ -28,6 +28,7 @@ if (builder.Environment.WebRootFileProvider is Microsoft.Extensions.FileProvider
 // 1. Đăng ký Controllers cho Web API.
 builder.Services.AddControllers();
 
+
 // 2. Đọc chuỗi kết nối từ appsettings.json.
 var connectionString = builder.Configuration
     .GetConnectionString("DefaultConnection");
@@ -115,7 +116,11 @@ builder.Services
                 var database = validated.HttpContext.RequestServices.GetRequiredService<CarRentalDbContext>();
                 var active = await database.Users.AsNoTracking()
                     .Where(user => user.Id == id && user.Role == role &&
-                        user.Status == CarRental.Models.Enums.UserStatus.ACTIVE)
+                        user.Status == CarRental.Models.Enums.UserStatus.ACTIVE &&
+                        (user.Role != CarRental.Models.Enums.UserRole.CUSTOMER ||
+                         !database.UserBlacklist.Any(entry => entry.Email == user.Email.Trim().ToLower() ||
+                             (entry.PhoneKey != null &&
+                              entry.PhoneKey == CarRentalDbContext.BlacklistPhoneKey(user.Phone)))))
                     .Select(user => new { user.SessionVersion })
                     .SingleOrDefaultAsync(validated.HttpContext.RequestAborted);
                 if (active is null || active.SessionVersion?.ToString("D") != tokenVersion)

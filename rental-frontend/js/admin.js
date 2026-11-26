@@ -14,10 +14,52 @@ function shell(title, actions = '') {
   const page = document.body.dataset.page, u = Auth.user();
   $('#admin-root').innerHTML = `<div class="adm">
     <aside class="adm-side"><a class="logo" href="../index.html">rentgo<small>.vn</small></a>
-      <nav>${ADMIN_NAV.filter(n => n[3].includes(u.role)).map(n => `<a href="${n[1]}" class="${n[0] === page ? 'active' : ''}">${n[2]}</a>`).join('')}<a href="../index.html">← Về website</a></nav>
+      <nav>${ADMIN_NAV.filter(n => n[3].includes(u.role)).map(n => `<a href="${n[1]}" class="${n[0] === page ? 'active' : ''}">${n[2]}${n[0] === 'payments' ? '<span id="admPaymentRequestCount" class="badge orange" hidden style="display:none" aria-live="polite"></span>' : ''}</a>`).join('')}<a href="../index.html">← Về website</a></nav>
       <div class="me"><b>${esc(u.fullName || u.email)}</b><br>${ROLE_LABEL[u.role]}<a id="admLogout">Đăng xuất</a></div></aside>
     <main class="adm-main"><div class="adm-top"><h1>${title}</h1><div>${actions}</div></div><div id="adm-content"><div class="skeleton" style="min-height:160px"></div></div></main></div>`;
   $('#admLogout').onclick = doLogout;
+  startAdminPaymentRequestPolling();
+}
+
+// Admin notifications come only from real, outstanding customer confirmation requests.
+let adminPaymentPollTimer = null;
+let adminPaymentPollBusy = false;
+let adminPaymentRequestCount = null;
+async function refreshAdminPaymentRequests() {
+  if (adminPaymentPollBusy || document.hidden || Auth.role() !== 'ADMIN') return;
+  adminPaymentPollBusy = true;
+  try {
+    const result = await request('GET', '/api/admin/payments/transfer-requests/pending-count', undefined, true);
+    const count = result?.pendingCount;
+    if (!Number.isSafeInteger(count) || count < 0) return;
+    const navBadge = $('#admPaymentRequestCount');
+    if (navBadge) {
+      navBadge.textContent = count > 0 ? String(count) : '';
+      navBadge.hidden = count === 0;
+      navBadge.style.display = count > 0 ? '' : 'none';
+      navBadge.setAttribute('aria-label', count + ' yêu cầu xác nhận thanh toán đang chờ');
+      navBadge.parentElement.href = count > 0 ? 'payments.html?view=transfers' : 'payments.html';
+    }
+    if (adminPaymentRequestCount !== null && count > adminPaymentRequestCount)
+      toast('Có yêu cầu xác nhận thanh toán mới.', 'ok');
+    adminPaymentRequestCount = count;
+    window.dispatchEvent(new CustomEvent('rentgo:payment-request-count', { detail: count }));
+  } catch {
+    // A temporary notification error must not disrupt other administration pages.
+  } finally {
+    adminPaymentPollBusy = false;
+  }
+}
+function startAdminPaymentRequestPolling() {
+  if (adminPaymentPollTimer !== null) return;
+  refreshAdminPaymentRequests();
+  adminPaymentPollTimer = setInterval(refreshAdminPaymentRequests, 10000);
+  document.addEventListener('visibilitychange', refreshAdminPaymentRequests);
+  window.addEventListener('pagehide', () => {
+    clearInterval(adminPaymentPollTimer);
+    adminPaymentPollTimer = null;
+    document.removeEventListener('visibilitychange', refreshAdminPaymentRequests);
+  }, { once: true });
 }
 
 const tableHtml = (cols, rows) => rows.length
@@ -222,13 +264,7 @@ function pageRentals() {
         ['Tổng tiền', o => fmtMoney(o.total)],
         ['Trạng thái', o => badge(RENTAL_STATUS, o.status)]
       ], data.items.map(normRental));
-      pager.innerHTML = '<button class="btn btn-outline" type="button" id="orderPrev">Trước</button>' +
-        '<span>Trang ' + page + ' / ' + pages + '</span><span>' + data.totalCount + ' kết quả</span>' +
-        '<button class="btn btn-outline" type="button" id="orderNext">Sau</button>';
-      $('#orderPrev').disabled = page <= 1;
-      $('#orderNext').disabled = page >= pages;
-      $('#orderPrev').onclick = () => loadOrders(page - 1);
-      $('#orderNext').onclick = () => loadOrders(page + 1);
+      renderPager(pager, page, pages, data.totalCount, loadOrders);
     } catch (error) {
       if (!quiet && requestId === listRequest) list.innerHTML = errBox(error);
     }
@@ -246,7 +282,6 @@ function pageRentals() {
     detail = order;
     const action = {
 
-      CONFIRMED: ['CANCELLED', 'Hủy đơn'],
       PAID: ['RENTING', 'Giao xe'],
       RENTING: ['COMPLETED', 'Hoàn tất']
     }[order.status];
@@ -303,89 +338,187 @@ function pageUsers() {
   const path = '/api/admin/users';
   const content = $('#adm-content');
   content.classList.add('compact-admin');
-  content.innerHTML = '<div class="panel"><form class="search-bar" id="userSearch">' +
-    '<label for="userTerm">Tìm người dùng</label><input class="input" id="userTerm" maxlength="100" placeholder="Tên, email hoặc điện thoại">' +
-    '<button class="btn btn-coral">Tìm</button></form><div id="userRows"></div>' +
-    '<div id="userPager" class="search-bar"></div></div>' +
-    '<dialog class="panel user-dialog" id="userDialog" aria-labelledby="userTitle"></dialog>';
+  content.innerHTML = `
+    <div class="panel">
+      <div class="search-bar" id="userViews" role="group" aria-label="Danh sách người dùng">
+        <button class="btn btn-outline btn-coral" type="button" data-view="users" aria-pressed="true">Người dùng</button>
+        <button class="btn btn-outline" type="button" data-view="blacklist" aria-pressed="false">Danh sách chặn</button>
+      </div>
+      <form class="search-bar" id="userSearch">
+        <label for="userTerm">Tìm kiếm</label>
+        <input class="input" id="userTerm" maxlength="100" placeholder="Tên, email hoặc điện thoại">
+        <button class="btn btn-coral" type="submit">Tìm</button>
+      </form>
+      <div id="userFeedback" role="status"></div>
+      <div id="userRows"></div>
+      <div id="userPager"></div>
+    </div>
+    <dialog class="panel user-dialog" id="userDialog" aria-labelledby="userTitle"></dialog>`;
   const rows = $('#userRows');
   const pager = $('#userPager');
+  const term = $('#userTerm');
   const dialog = $('#userDialog');
+  const feedback = $('#userFeedback');
   let page = 1;
   let ticket = 0;
   let busy = false;
-  const status = user => user.status === 'LOCKED' ? 'Đã chặn' : 'Đang hoạt động';
+  let blacklist = false;
+  let users = [];
+  const status = user => {
+    if (user.status === 'LOCKED') return 'Đã chặn';
+    return user.contactBlocked ? 'Bị chặn theo email hoặc SĐT' : 'Đang hoạt động';
+  };
+  const contact = user => esc(user.email) + '<br>' + esc(user.phone);
+  const button = (user, action, label, style = 'btn-outline') =>
+    '<button type="button" class="btn ' + style + ' btn-sm" data-user="' +
+    esc(user.id) + '" data-user-action="' + action + '">' + label + '</button>';
+  const actions = user => {
+    const details = button(user, 'details', 'Chi tiết');
+    if (user.status === 'LOCKED') return details + ' ' + button(user, 'unblock', 'Bỏ chặn');
+    return user.role === 'CUSTOMER' ? details + ' ' + button(user, 'block', 'Chặn người dùng', 'btn-danger') : details;
+  };
 
   async function load(next) {
     const current = ++ticket;
     page = next;
     pager.replaceChildren();
     rows.innerHTML = '<div class="skeleton" aria-label="Đang tải người dùng"></div>';
-    const params = new URLSearchParams({ page, search: $('#userTerm').value.trim() });
+    const params = new URLSearchParams({ page, search: term.value.trim() });
+    users = [];
     try {
-      const data = await request('GET', path + '?' + params, undefined, true);
+      const data = await request('GET', path + (blacklist ? '/blacklist?' : '?') + params, undefined, true);
       if (current !== ticket) return;
       const pages = Math.max(1, Math.ceil(data.totalCount / data.pageSize));
       if (page > pages) return load(pages);
-      rows.innerHTML = tableHtml([
+      users = data.items;
+      rows.innerHTML = blacklist ? tableHtml([
         ['Họ tên', user => esc(user.fullName)],
-        ['Liên hệ', user => esc(user.email) + '<br>' + esc(user.phone)],
+        ['Email và SĐT bị chặn', contact],
+        ['Lý do', user => esc(user.reason)],
+        ['Người chặn', user => esc(user.blockedByName ?? '—')],
+        ['Thời điểm', user => esc(fmtDateTime(user.blockedAt))],
+        ['', user => button(user, 'unblock', 'Bỏ chặn')]
+      ], users) : tableHtml([
+        ['Họ tên', user => esc(user.fullName)],
+        ['Liên hệ', contact],
         ['Vai trò', user => esc(ROLE_LABEL[user.role] ?? user.role)],
         ['Trạng thái', user => status(user)],
-        ['', user => '<button class="btn btn-outline btn-sm" data-user="' + esc(user.id) + '">Chi tiết</button>']
-      ], data.items);
-      pager.innerHTML = '<button class="btn btn-outline" id="userPrev">Trước</button>' +
-        '<span>Trang ' + page + ' / ' + pages + '</span><span>' + data.totalCount + ' kết quả</span>' +
-        '<button class="btn btn-outline" id="userNext">Sau</button>';
-      $('#userPrev').disabled = page === 1;
-      $('#userNext').disabled = page === pages;
-      $('#userPrev').onclick = () => load(page - 1);
-      $('#userNext').onclick = () => load(page + 1);
+        ['', actions]
+      ], users);
+      renderPager(pager, page, pages, data.totalCount, load);
     } catch (error) {
       if (current === ticket) rows.innerHTML = errBox(error);
     }
   }
 
   function show(user) {
-    const blocked = user.status === 'LOCKED';
-    const action = blocked ? 'Mở chặn' : 'Chặn tài khoản';
-    dialog.innerHTML = '<h2 id="userTitle">' + esc(user.fullName) + '</h2><dl>' + [
+    const fields = [
       ['Email', user.email], ['Điện thoại', user.phone], ['Vai trò', ROLE_LABEL[user.role] ?? user.role],
       ['Trạng thái', status(user)], ['Ngày tạo', fmtDateTime(user.createdAt)]
-    ].map(([label, value]) => '<dt>' + label + '</dt><dd>' + esc(value ?? '—') + '</dd>').join('') +
-      '</dl><div class="search-bar"><button class="btn btn-outline" id="userClose">Đóng</button>' +
-      (String(user.id) === String(Auth.user()?.id) ? '' :
-        '<button class="btn ' + (blocked ? 'btn-coral' : 'btn-danger') + '" id="userToggle">' + action + '</button>') +
-      '</div><div id="userError" role="alert"></div>';
-    $('#userClose').onclick = () => { if (!busy) dialog.close(); };
-    const toggle = $('#userToggle');
-    if (toggle) toggle.onclick = async () => {
-      if (busy || !confirm(action + ' cho ' + user.fullName + '?')) return;
+    ];
+    if (user.blockReason) fields.push(['Lý do chặn', user.blockReason]);
+    const blocked = user.status === 'LOCKED';
+    const statusButton = blocked || user.role === 'CUSTOMER' ?
+      '<button type="button" class="btn ' + (blocked ? 'btn-coral' : 'btn-danger') + '" id="userToggle">' +
+        (blocked ? 'Bỏ chặn' : 'Chặn người dùng') + '</button>' : '';
+    dialog.innerHTML = '<h2 id="userTitle">' + esc(user.fullName) + '</h2><dl>' +
+      fields.map(([label, value]) => '<dt>' + label + '</dt><dd>' + esc(value ?? '—') + '</dd>').join('') +
+      '</dl><div class="search-bar"><button type="button" class="btn btn-outline" id="userClose">Đóng</button>' +
+      statusButton + '</div>';
+    $('#userClose').onclick = () => dialog.close();
+    if (statusButton) $('#userToggle').onclick = () => confirmStatus(user, !blocked);
+    dialog.showModal();
+  }
+
+  function confirmStatus(user, blocked) {
+    const action = blocked ? 'Chặn người dùng' : 'Bỏ chặn';
+    dialog.innerHTML = `
+      <h2 id="userTitle">${action}</h2>
+      <p><strong>${esc(user.fullName)}</strong><br>${contact(user)}</p>
+      <form id="userStatusForm">
+        ${blocked ? `
+        <label for="userReason">Lý do chặn
+          <input class="input" id="userReason" name="reason" list="blockReasons" required maxlength="500">
+        </label>
+        <datalist id="blockReasons">
+          <option value="Vi phạm điều khoản thuê xe"></option>
+          <option value="Có dấu hiệu gian lận"></option>
+          <option value="Cung cấp thông tin sai"></option>
+        </datalist>
+        <p class="muted">Tài khoản sẽ bị đăng xuất. Email và số điện thoại này sẽ bị chặn khi đăng ký.</p>
+        ` : '<p class="muted">Gỡ chặn cho tài khoản, email và số điện thoại này.</p>'}
+        <div id="userError" role="alert"></div>
+        <div class="search-bar">
+          <button class="btn btn-outline" type="button" id="userClose">Hủy</button>
+          <button class="btn ${blocked ? 'btn-danger' : 'btn-coral'}" type="submit">Xác nhận ${blocked ? 'chặn' : 'bỏ chặn'}</button>
+        </div>
+      </form>`;
+    const close = $('#userClose');
+    close.onclick = () => { if (!busy) dialog.close(); };
+    $('#userStatusForm').onsubmit = async event => {
+      event.preventDefault();
+      if (busy) return;
+      const reasonInput = event.currentTarget.elements.reason;
+      const reason = reasonInput?.value.trim();
+      if (blocked && !reason) {
+        $('#userError').textContent = 'Vui lòng nhập lý do chặn.';
+        reasonInput.focus();
+        return;
+      }
+      const submit = event.submitter;
       busy = true;
-      setLoading(toggle, true);
+      close.disabled = true;
+      setLoading(submit, true);
+      $('#userError').replaceChildren();
       try {
-        show(await request('PUT', itemPath(path, user.id) + '/status', { blocked: !blocked }, true));
-        load(page);
+        const result = await request('PUT', itemPath(path, user.id) + '/status', { blocked, reason }, true);
+        dialog.close();
+        feedback.textContent = blocked ? 'Đã chặn ' + user.fullName + '.' :
+          'Đã bỏ chặn ' + user.fullName + '.' + (result.contactBlocked ? ' Một thông tin liên hệ vẫn nằm trong mục chặn khác.' : '');
+        await load(page);
       } catch (error) {
         $('#userError').innerHTML = errBox(error);
-        setLoading(toggle, false);
       } finally {
+        setLoading(submit, false);
+        close.disabled = false;
         busy = false;
       }
     };
     if (!dialog.open) dialog.showModal();
+    ($('#userReason') ?? close).focus();
   }
 
   rows.onclick = async event => {
-    const button = event.target.closest('[data-user]');
-    if (!button || busy) return;
+    const control = event.target.closest('[data-user]');
+    if (!control || busy) return;
+    const user = users.find(item => String(item.id) === control.dataset.user);
+    if (!user) return;
+    feedback.textContent = '';
+    if (control.dataset.userAction !== 'details') {
+      confirmStatus(user, control.dataset.userAction === 'block');
+      return;
+    }
     busy = true;
-    setLoading(button, true);
-    try { show(await request('GET', itemPath(path, button.dataset.user), undefined, true)); }
+    setLoading(control, true);
+    try { show(await request('GET', itemPath(path, user.id), undefined, true)); }
     catch (error) { toast(error.message, 'err'); }
-    finally { busy = false; setLoading(button, false); }
+    finally { busy = false; setLoading(control, false); }
   };
   dialog.addEventListener('cancel', event => { if (busy) event.preventDefault(); });
+  $('#userViews').onclick = event => {
+    const view = event.target.closest('[data-view]');
+    if (!view || busy || view.getAttribute('aria-pressed') === 'true') return;
+    blacklist = view.dataset.view === 'blacklist';
+    for (const control of $('#userViews').querySelectorAll('[data-view]')) {
+      const selected = control === view;
+      control.classList.toggle('btn-coral', selected);
+      control.setAttribute('aria-pressed', String(selected));
+    }
+    feedback.textContent = '';
+    term.value = '';
+    term.placeholder = blacklist ? 'Tên, email, điện thoại hoặc lý do' : 'Tên, email hoặc điện thoại';
+    load(1);
+  };
   $('#userSearch').onsubmit = event => { event.preventDefault(); load(1); };
   load(1);
 }

@@ -1,6 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
+using CarRental.BLL.Interfaces;
 using CarRental.DAL.Context;
+using CarRental.Models.DTOs.Payments;
 using CarRental.Models.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,12 +13,30 @@ namespace CarRental.API.Controllers;
 [ApiController]
 [Authorize(Roles = "ADMIN")]
 [Route("api/admin/payments")]
-public sealed class AdminPaymentsController(CarRentalDbContext context) : ControllerBase
+public sealed class AdminPaymentsController(CarRentalDbContext context, IPaymentService paymentService) : ControllerBase
 {
     private async Task<bool> IsActiveAdmin(CancellationToken cancellationToken) =>
         long.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) &&
         await context.Users.AnyAsync(user => user.Id == id && user.Role == UserRole.ADMIN &&
             user.Status == UserStatus.ACTIVE, cancellationToken);
+
+    [HttpGet("revenue")]
+    public async Task<IActionResult> Revenue(
+        [FromQuery] string? period, [FromQuery] DateOnly? date, [FromQuery] int? month,
+        [FromQuery] int? year, [FromQuery] DateOnly? from, [FromQuery] DateOnly? to,
+        CancellationToken cancellationToken)
+    {
+        if (!await IsActiveAdmin(cancellationToken)) return Forbid();
+
+        try
+        {
+            return Ok(await paymentService.GetRevenueAsync(new(period, date, month, year, from, to), cancellationToken));
+        }
+        catch (ArgumentException error)
+        {
+            return BadRequest(new { message = error.Message });
+        }
+    }
 
     [HttpGet("summary")]
     public async Task<IActionResult> Summary(CancellationToken cancellationToken)
@@ -37,8 +57,8 @@ public sealed class AdminPaymentsController(CarRentalDbContext context) : Contro
         {
             revenue = paid?.Revenue ?? 0m,
             paidOrders = paid?.Count ?? 0,
-            awaitingReview = counts.GetValueOrDefault(RentalStatus.PENDING),
-            awaitingPayment = counts.GetValueOrDefault(RentalStatus.CONFIRMED)
+            awaitingReview = 0,
+            awaitingPayment = counts.GetValueOrDefault(RentalStatus.PENDING) + counts.GetValueOrDefault(RentalStatus.CONFIRMED)
         });
     }
 

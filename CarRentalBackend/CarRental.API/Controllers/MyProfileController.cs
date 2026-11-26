@@ -50,6 +50,7 @@ public sealed class MyProfileController(
     {
         var fullName = input.FullName.Trim();
         var phone = input.Phone.Trim();
+        await using var transaction = await context.BeginUserIdentityTransactionAsync(ct);
         var account = Account();
         var user = await account.AsNoTracking().SingleOrDefaultAsync(ct);
         if (user is null) return Unauthorized();
@@ -58,6 +59,9 @@ public sealed class MyProfileController(
         if (fullName.Length == 0 || fullName.Any(char.IsControl) ||
             (phone != user.Phone && (digits.Length is < 8 or > 15 || !digits.All(char.IsAsciiDigit))))
             return BadRequest(new { message = "Họ tên hoặc số điện thoại không hợp lệ." });
+
+        if (await context.IsBlacklistedAsync(user.Email, phone, ct))
+            return Conflict(new { message = "Số điện thoại đang nằm trong danh sách chặn." });
 
         try
         {
@@ -72,6 +76,7 @@ public sealed class MyProfileController(
             return Conflict(new { message = "Số điện thoại đã được sử dụng." });
         }
 
+        await transaction.CommitAsync(ct);
         user.FullName = fullName;
         user.Phone = phone;
         return Ok(Profile(user));

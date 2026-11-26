@@ -13,7 +13,7 @@ const CATEGORY = {
   XE_DIEN: { label: 'Xe điện', icon: 'bolt' }
 };
 const VEHICLE_STATUS = { AVAILABLE: ['Sẵn sàng', 'green'], RENTED: ['Đang được thuê', 'orange'], MAINTENANCE: ['Bảo trì', 'gray'] };
-const RENTAL_STATUS = { PENDING: ['Chờ duyệt', 'yellow'], CONFIRMED: ['Chờ thanh toán', 'blue'], PAID: ['Đã thanh toán', 'teal'], RENTING: ['Đang thuê', 'purple'], COMPLETED: ['Hoàn tất', 'green'], CANCELLED: ['Đã huỷ', 'red'] };
+const RENTAL_STATUS = { PENDING: ['Chờ thanh toán', 'yellow'], CONFIRMED: ['Chờ thanh toán', 'blue'], PAID: ['Đã thanh toán', 'teal'], RENTING: ['Đang thuê', 'purple'], COMPLETED: ['Hoàn tất', 'green'], CANCELLED: ['Đã huỷ', 'red'] };
 const DETAIL_STATUS = { RESERVED: ['Đã giữ xe', 'blue'], RENTING: ['Đang thuê', 'purple'], RETURNED: ['Đã trả', 'green'], CANCELLED: ['Đã huỷ', 'red'] };
 const PAYMENT_STATUS = { PENDING: ['Chờ thanh toán', 'yellow'], PAID: ['Đã thanh toán', 'green'], FAILED: ['Thất bại', 'red'], REFUNDED: ['Đã hoàn tiền', 'gray'] };
 const PAYMENT_METHOD = { CASH: 'Tiền mặt', BANK_TRANSFER: 'Chuyển khoản', MOMO: 'MoMo', VNPAY: 'VNPay', CARD: 'Thẻ', OTHER: 'Khác' };
@@ -318,4 +318,12 @@ function validateSearchRange(start, end, error) {
 
 function showRentalActions() {
   return !Auth.isLoggedIn() || Auth.role() === 'CUSTOMER';
+}
+
+function renderPager(el, page, pages, total, onPage) {
+  el.className = 'rg-pager';
+  el.innerHTML = `<span class="rg-count">${total == null ? '' : total + ' kết quả'}</span><div class="rg-page-controls"><button type="button" aria-label="Trang trước" ${page <= 1 ? 'disabled' : ''}>‹</button><span>Trang ${page}${pages == null ? '' : ' / ' + pages}</span><button type="button" aria-label="Trang sau" ${pages != null && page >= pages ? 'disabled' : ''}>›</button></div>`;
+  const [prev, next] = el.querySelectorAll('button');
+  prev.onclick = () => onPage(page - 1);
+  next.onclick = () => onPage(page + 1);
 }

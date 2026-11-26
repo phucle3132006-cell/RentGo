@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using CarRental.BLL.Interfaces;
 using CarRental.DAL.Context;
+using CarRental.Models.Entities;
 using CarRental.Models.DTOs.RentalOrders;
 using CarRental.Models.Enums;
 using Microsoft.AspNetCore.Authorization;
@@ -13,32 +14,8 @@ namespace CarRental.API.Controllers;
 [ApiController]
 [Authorize(Roles = "ADMIN")]
 [Route("api/rental-orders")]
-public sealed class AdminRentalOrdersController(CarRentalDbContext context, IRentalOrderService rentals) : ControllerBase
+public sealed class AdminRentalOrdersController(CarRentalDbContext context) : ControllerBase
 {
-    public sealed record ReviewRequest([Required] bool? Approve, [StringLength(500)] string? Reason);
-
-    [HttpPost("{id:long}/review")]
-    public async Task<IActionResult> Review(long id, ReviewRequest request, CancellationToken cancellationToken)
-    {
-        if (!long.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var adminId) || adminId <= 0)
-            return Unauthorized();
-
-        try
-        {
-            return Ok(await rentals.UpdateStatusAsync(id, adminId, new UpdateRentalOrderStatusRequest
-            {
-                IsReview = true,
-                Status = request.Approve == true ? RentalStatus.CONFIRMED : RentalStatus.CANCELLED,
-                RejectionReason = request.Reason?.Trim()
-            }, cancellationToken));
-        }
-        catch (UnauthorizedAccessException) { return Forbid(); }
-        catch (ArgumentException error) { return BadRequest(new { message = error.Message }); }
-        catch (KeyNotFoundException) { return NotFound(); }
-        catch (InvalidOperationException error) { return Conflict(new { message = error.Message }); }
-        catch (DbUpdateConcurrencyException) { return Conflict(new { message = "Đơn vừa thay đổi. Vui lòng tải lại." }); }
-    }
-
     [HttpGet]
     public async Task<IActionResult> List(
         CancellationToken cancellationToken,
@@ -88,7 +65,10 @@ public sealed class AdminRentalOrdersController(CarRentalDbContext context, IRen
                 CustomerName = order.Customer.FullName,
                 CustomerEmail = order.Customer.Email,
                 CustomerPhone = order.Customer.Phone,
-                PendingPaymentMethod = context.Set<CarRental.Models.Entities.TransferRequest>()
+                PendingPaymentRequestId = context.Set<TransferRequest>()
+                    .Where(item => item.OrderId == order.Id && item.Status == "PENDING")
+                    .Select(item => (long?)item.Id).FirstOrDefault(),
+                PendingPaymentMethod = context.Set<TransferRequest>()
                     .Where(item => item.OrderId == order.Id && item.Status == "PENDING")
                     .Select(item => item.PaymentMethod).FirstOrDefault(),
                 order.StartDatetime,

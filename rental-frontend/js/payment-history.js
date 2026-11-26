@@ -37,13 +37,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const result = await Api.myPayments(page);
       status.textContent = result.items.length ? '' : 'Chưa có giao dịch thanh toán thành công.';
       history.innerHTML = result.items.map(payment => renderPayment(payment)).join('');
-      for (const [show, label, target] of [[page > 1, 'Trang trước', page - 1], [result.hasNext, 'Trang sau', page + 1]]) {
-        if (!show) continue;
-        const button = document.createElement('button');
-        button.textContent = label;
-        button.onclick = () => load(target);
-        pages.append(button);
-      }
+      renderPager(pages, page, result.hasNext ? null : page, null, load);
     } catch (error) { status.textContent = error.message; }
   }
 
