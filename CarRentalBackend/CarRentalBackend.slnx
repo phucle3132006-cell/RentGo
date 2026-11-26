@@ -1,6 +1,0 @@
-<Solution>
-  <Project Path="CarRental.API/CarRental.API.csproj" />
-  <Project Path="CarRental.BLL/CarRental.BLL.csproj" />
-  <Project Path="CarRental.DAL/CarRental.DAL.csproj" />
-  <Project Path="CarRental.Models/CarRental.Models.csproj" />
-</Solution>
